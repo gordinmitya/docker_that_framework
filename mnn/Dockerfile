@@ -1,4 +1,4 @@
-FROM gordinmitya/android-ndk
+FROM gordinmitya/android-ndk AS builder
 
 # Vulkan SDK 
 # https://vulkan.lunarg.com/sdk/home#linux
@@ -12,42 +12,51 @@ RUN wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key a
     # OpenGL
     apt install -y libglew-dev libegl1-mesa-dev
 
-RUN git clone https://github.com/alibaba/MNN.git && \
-    cd MNN && \
-    ./schema/generate.sh
+ENV EXPORT_DIR=/export BUILD_DIR=/build
 
-RUN mkdir MNN/build_converter && \
-    cd MNN/build_converter && \
+RUN git clone https://github.com/alibaba/MNN.git $BUILD_DIR && \
+    cd $BUILD_DIR && \
+    ./schema/generate.sh && \
+    mkdir -p $EXPORT_DIR
+
+RUN mkdir $BUILD_DIR/build_converter && \
+    cd $BUILD_DIR/build_converter && \
     cmake .. \
-    -DMNN_BUILD_CONVERTER=true -DMNN_BUILD_SHARED_LIBS=false && \
-    make -j8
-
-RUN EXPORT_DIR=export/converter && BUILD_DIR=MNN/build_converter && \
-    mkdir -p $EXPORT_DIR && \
-    cp $BUILD_DIR/MNNConvert $EXPORT_DIR
-
-RUN mkdir MNN/build_benchmark && \
-    cd MNN/build_benchmark && \
-    cmake .. \
-    -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DANDROID_ABI="arm64-v8a" \
-    -DANDROID_STL=c++_static \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DANDROID_NATIVE_API_LEVEL=android-21  \
-    -DANDROID_TOOLCHAIN=clang \
-    -DMNN_VULKAN:BOOL=ON \
-    -DMNN_OPENCL:BOOL=ON \
-    -DMNN_OPENMP:BOOL=ON \
-    -DMNN_OPENGL:BOOL=ON \
-    -DMNN_DEBUG:BOOL=OFF \
-    -DMNN_BUILD_BENCHMARK:BOOL=ON \
-    -DMNN_BUILD_FOR_ANDROID_COMMAND=true \
-    -DNATIVE_LIBRARY_OUTPUT=. && \
-    make -j8 benchmark.out timeProfile.out
+    -DMNN_BUILD_CONVERTER=true && \
+    make -j8 && \
+    cp ./MNNConvert $EXPORT_DIR
     
-RUN EXPORT_DIR=export/benchmark && BUILD_DIR=MNN/build_benchmark \
-    mkdir -p $EXPORT_DIR && \
-    find $BUILD_DIR -name "*.so" | while read solib; do cp $solib $EXPORT_DIR; done && \
-    cp $BUILD_DIR/benchmark.out $EXPORT_DIR && \
-    cp $BUILD_DIR/timeProfile.out $EXPORT_DIR
+RUN for abi in "armeabi-v7a" "arm64-v8a"; do \
+        mkdir $BUILD_DIR/"build_$abi" && \
+        mkdir $EXPORT_DIR/lib_$abi && \
+        cd $BUILD_DIR/"build_$abi" && \
+        cmake .. \
+        -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DANDROID_ABI=$abi \
+        -DANDROID_STL=c++_static \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DANDROID_NATIVE_API_LEVEL=android-21  \
+        -DANDROID_TOOLCHAIN=clang \
+        -DMNN_VULKAN:BOOL=ON \
+        -DMNN_OPENCL:BOOL=ON \
+        -DMNN_OPENMP:BOOL=ON \
+        -DMNN_OPENGL:BOOL=ON \
+        -DMNN_DEBUG:BOOL=OFF \
+        -DMNN_BUILD_BENCHMARK:BOOL=ON \
+        -DMNN_BUILD_FOR_ANDROID_COMMAND=true \
+        -DNATIVE_LIBRARY_OUTPUT=. && \
+        make -j8 benchmark.out timeProfile.out && \
+        find . -name "*.so" | while read solib; do cp $solib $EXPORT_DIR/lib_$abi; done && \
+        cp ./benchmark.out $EXPORT_DIR && \
+        cp ./timeProfile.out $EXPORT_DIR && \
+        cd $BUILD_DIR ;\
+    done
+
+WORKDIR /export
+
+## TODO use multistage to reduce size
+## how to grab all MNNConverter dependencies?
+# FROM debian:stretch-slim
+# WORKDIR /export
+# COPY --from=builder /export/ /app/
