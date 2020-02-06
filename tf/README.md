@@ -2,6 +2,10 @@
 
 This image is available on [DockerHub](https://hub.docker.com/repository/docker/gordinmitya/onnx2tflite/).
 
+**WARNING**
+
+That's not working very well, better to avoid such conversions.
+
 ## TensorFlow conversion
 ```bash
 onnx-tf convert -i /data/mobilenet_v2.onnx -o /data/model.pb
