@@ -11,6 +11,14 @@ Also, it containers builded *.so* libraries for Android armeabi-v7a, arm64-v8a *
 
 ## Usage
 
+**Copy libraries**
+
+```bash
+docker run --rm -v /home/mitya/data:/data gordinmitya/mnn /bin/bash -c "cp -r lib_* /data"
+```
+
+**Converter**
+
 ```bash
 docker run --rm -v /home/mitya/data:/data gordinmitya/mnn \
   /export/MNNConvert --framework ONNX \
@@ -19,16 +27,18 @@ docker run --rm -v /home/mitya/data:/data gordinmitya/mnn \
     --bizCode biz
 ```
 Where:
-* `--rm` remove container after execution
-* `-v /home/mitya/data:/data` – map local directory with model to /data directory inside container
-* `gordinmitya/mnn` image name from DockerHub
+* `--rm` remove container after execution,
+* `-v /home/mitya/data:/data` – map local directory with model to /data directory inside container,
+* `gordinmitya/mnn` image name from DockerHub,
 * `/export/MNNConvert …` path to tool inside container and args.
 
-Or
+Or just enter the container
+
 ```bash
-docker run --rm gordinmitya/mnn /export/MNNConvert --help
+docker run --rm -it -v /home/mitya/data:/data gordinmitya/mnn /bin/bash"
 ```
-To see more details.
+
+MNNConverter help:
 ```
 Usage:
   MNNConvert [OPTION...]
