@@ -7,9 +7,9 @@ Docker image with compiled tools:
 * [timeProfile.out](https://www.yuque.com/mnn/en/tool_test) Operators' total time-consuming statistic;
 * [benchmark.out](https://www.yuque.com/mnn/en/tool_benchmark) benchmark time for several models.
 
-Also, it contatins builded *.so* libraries for Android armeabi-v7a, arm64-v8a *(libMNN.so, libMNN_CL.so, libMNN_Express.so, libMNN_GL.so, libMNN_Vulkan.so)*.
+Also, it containers builded *.so* libraries for Android armeabi-v7a, arm64-v8a *(libMNN.so, libMNN_CL.so, libMNN_Express.so, libMNN_GL.so, libMNN_Vulkan.so)*.
 
-## Useage
+## Usage
 
 ```bash
 docker run --rm -v /home/mitya/data:/data gordinmitya/mnn \
@@ -28,7 +28,7 @@ Or
 ```bash
 docker run --rm gordinmitya/mnn /export/MNNConvert --help
 ```
-To see help promt.
+To see more details.
 ```
 Usage:
   MNNConvert [OPTION...]
