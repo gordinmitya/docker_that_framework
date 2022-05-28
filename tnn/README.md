@@ -2,14 +2,12 @@
 
 This image is available on [DockerHub](https://hub.docker.com/repository/docker/gordinmitya/tnn-convert).
 
-There are two ways to tags:
-* *latest* - onnx only, lightweight image;
-* *tensorflow* - heavier by 2gb image with tensorflow.
+*Tensorflow* to use uncomment corresponding lines in `Dockerfile`.
 
 **Converter**
 
 ```bash 
-docker run --volume=$(pwd):/workspace --rm -it gordinmitya/tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/faceboxesv2.onnx -optimize -v=v1.0 -o /workspace/tnn/fp32
+docker run --volume=$(pwd):/workspace --rm -it gordinmitya/tnn-convert:latest python3 ./converter.py onnx2tnn /workspace/model.onnx -optimize -v=v1.0 -o /workspace/tnn/fp32
 ```
 
 Show help:

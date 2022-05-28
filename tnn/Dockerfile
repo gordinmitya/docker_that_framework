@@ -12,10 +12,14 @@ RUN apt-get update -y && \
 RUN python3 -m pip install --upgrade pip setuptools && \
     pip3 install onnx onnxruntime numpy onnx-simplifier protobuf
 
-RUN git clone https://github.com/Tencent/TNN.git /opt/TNN && \
-    cd /opt/TNN/tools/convert2tnn && \
-    sed 's/make -j4/make -j`nproc`/g' < build.sh > build.sh && \
+# RUN pip3 install tensorflow==1.15.0 tf2onnx
+
+RUN git clone https://github.com/Tencent/TNN.git /opt/TNN
+
+RUN cd /opt/TNN/tools/convert2tnn && \
+    sed -i 's/make -j4/make -j`nproc`/g' ./build.sh && \
     bash ./build.sh && \
-    python3 /opt/TNN/tools/convert2tnn/converter.py -h
+    rm -rf /opt/TNN/tools/convert2tnn/build && \
+    python3 /opt/TNN/tools/convert2tnn/converter.py onnx2tnn -h
 
 WORKDIR /opt/TNN/tools/convert2tnn/
