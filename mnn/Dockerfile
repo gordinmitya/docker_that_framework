@@ -1,41 +1,46 @@
 FROM gordinmitya/android-ndk AS builder
 
-# Vulkan SDK 
 # https://vulkan.lunarg.com/sdk/home#linux
-RUN wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add - && \
-    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.1.126-bionic.list http://packages.lunarg.com/vulkan/1.1.126/lunarg-vulkan-1.1.126-bionic.list && \
-    apt update && apt install -y --no-install-recommends vulkan-sdk && \
-    # OpenCL
-    apt install -y --no-install-recommends ocl-icd-opencl-dev && \
-    # Protobuf
-    apt install -y libprotobuf-dev protobuf-compiler && \
-    # OpenGL
-    apt install -y libglew-dev libegl1-mesa-dev
+ENV VULKAN_SDK_VERSION=1.3.296
 
-ENV EXPORT_DIR=/export BUILD_DIR=/build
+RUN wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | tee /etc/apt/trusted.gpg.d/lunarg.asc && \
+    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-$VULKAN_SDK_VERSION-jammy.list https://packages.lunarg.com/vulkan/$VULKAN_SDK_VERSION/lunarg-vulkan-$VULKAN_SDK_VERSION-jammy.list
 
-RUN git clone https://github.com/alibaba/MNN.git $BUILD_DIR && \
-    cd $BUILD_DIR && \
-    ./schema/generate.sh && \
-    mkdir -p $EXPORT_DIR
+RUN apt update && apt install -y --no-install-recommends \
+        # Vulkan SDK
+        vulkan-sdk \
+        # OpenCL
+        ocl-icd-opencl-dev \
+        # Protobuf
+        libprotobuf-dev protobuf-compiler \
+        # OpenGL
+        libglew-dev libegl1-mesa-dev
 
-RUN mkdir $BUILD_DIR/build_converter && \
-    cd $BUILD_DIR/build_converter && \
+ENV EXPORT_DIR=/export \
+    MNN_ROOT=/mnn_framework
+RUN mkdir -p $EXPORT_DIR $MNN_ROOT
+
+WORKDIR $MNN_ROOT
+RUN git clone https://github.com/alibaba/MNN.git $MNN_ROOT
+
+RUN sh ./schema/generate.sh
+
+RUN mkdir $MNN_ROOT/build_converter && \
+    cd $MNN_ROOT/build_converter && \
     cmake .. \
-    -DMNN_BUILD_CONVERTER=true && \
-    make -j8 && \
+    -DMNN_BUILD_CONVERTER=ON && \
+    make -j$(nproc) && \
     cp ./MNNConvert $EXPORT_DIR
-    
-RUN for abi in "armeabi-v7a" "arm64-v8a"; do \
-        mkdir $BUILD_DIR/"build_$abi" && \
+
+RUN for abi in "armeabi-v7a" "arm64-v8a" "x86_64"; do \
+        mkdir $MNN_ROOT/"build_$abi" && \
         mkdir $EXPORT_DIR/lib_$abi && \
-        cd $BUILD_DIR/"build_$abi" && \
+        cd $MNN_ROOT/"build_$abi" && \
         cmake .. \
         -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DANDROID_ABI=$abi \
         -DANDROID_STL=c++_static \
-        -DCMAKE_BUILD_TYPE=Release \
         -DANDROID_NATIVE_API_LEVEL=android-21  \
         -DANDROID_TOOLCHAIN=clang \
         -DMNN_VULKAN:BOOL=ON \
@@ -46,14 +51,14 @@ RUN for abi in "armeabi-v7a" "arm64-v8a"; do \
         -DMNN_BUILD_BENCHMARK:BOOL=ON \
         -DMNN_BUILD_FOR_ANDROID_COMMAND=true \
         -DNATIVE_LIBRARY_OUTPUT=. && \
-        make -j8 benchmark.out timeProfile.out && \
+        make -j$(nproc) benchmark.out timeProfile.out && \
         find . -name "*.so" | while read solib; do cp $solib $EXPORT_DIR/lib_$abi; done && \
         cp ./benchmark.out $EXPORT_DIR && \
         cp ./timeProfile.out $EXPORT_DIR && \
-        cd $BUILD_DIR ;\
+        cd $MNN_ROOT ;\
     done
 
-WORKDIR /export
+# WORKDIR /export
 
 ## TODO use multistage to reduce size
 ## how to grab all MNNConverter dependencies?
