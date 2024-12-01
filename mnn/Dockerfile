@@ -57,3 +57,18 @@ RUN for abi in "arm64-v8a"; do \
         make -j$(nproc) && \
         cd $MNN_ROOT ;\
     done
+
+RUN apt install -y --no-install-recommends \
+    python3 \
+    python3-pip
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install --upgrade pip && \
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install timm \
+    onnx onnxsim onnxruntime \
+    jupyterlab \
+    tqdm ipywidgets \
+    pandas matplotlib
